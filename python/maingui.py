@@ -525,6 +525,7 @@ class MicButton(gtk.ToggleButton):
   
     @staticmethod
     def __cb_toggle(self):
+        self.approot.mic_button_toggled(self.get_active())
         self.__indicate()
         if self.get_active():
             self.set_colour(self.open_colour)
@@ -547,7 +548,7 @@ class MicButton(gtk.ToggleButton):
             each.set_colour(colour)
 
 
-    def __init__(self, opener_settings, opener_tab, mic_agc_list):
+    def __init__(self, opener_settings, opener_tab, mic_agc_list, approot):
         gtk.ToggleButton.__init__(self)
 
         self.opener_tab = opener_tab
@@ -558,6 +559,7 @@ class MicButton(gtk.ToggleButton):
         self.closed_colour = opener_settings.closed_colour.get_color()
         self.flash_colour = opener_settings.reminder_colour.get_color()
         self.has_reminder_flash = opener_tab.has_reminder_flash.get_active
+        self.approot = approot
 
         attrlist = pango.AttrList()
         attrlist.insert(pango.AttrSize(METER_TEXT_SIZE, 0, 100))
@@ -1024,7 +1026,7 @@ class MicOpener(gtk.HBox):
             for i, g in enumerate(group_list):
                 if g:
                     mic_list = []
-                    mb = MicButton(self.opener_settings, ot[i], g)
+                    mb = MicButton(self.opener_settings, ot[i], g, self.approot)
                     self.ix2button[mb.opener_tab.ident] = mb
                     self.buttons.append(mb)
                     active = False
@@ -2973,13 +2975,30 @@ class MainWindow(dbus.service.Object):
         return self.player_left.is_playing or self.player_right.is_playing
 
 
+    def mic_button_toggled(self, active):
+        if (active):
+            self.active_mics += 1
+        else:
+            self.active_mics -= 1
+
+        self.on_air(self.active_mics > 0)
+        
+
+    @dbus.service.signal(dbus_interface=PGlobs.dbus_bus_basename, signature="b")
+    def on_air(self, active):
+        """DBus signal for plugins to attach to for 'on air' toggle updates."""
+        
+        pass
+
+
     def __init__(self):
         self.appname = PGlobs.app_longform
         self.version = FGlobs.package_version
         self.copyright = PGlobs.copyright
         self.license = PGlobs.license
         self.profile = pm.profile
-        
+        self.active_mics = 0
+                
         signal.signal(signal.SIGINT, self.destroy_hard)
         signal.signal(signal.SIGUSR1, signal.SIG_IGN)
         signal.signal(signal.SIGUSR2, signal.SIG_IGN)

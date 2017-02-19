@@ -70,7 +70,9 @@ class IDJCMonitor(gobject.GObject):
         'tracks-finishing': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
                             ()),
         'frozen' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
-                (gobject.TYPE_STRING, gobject.TYPE_UINT, gobject.TYPE_BOOLEAN))
+                (gobject.TYPE_STRING, gobject.TYPE_UINT, gobject.TYPE_BOOLEAN)),
+        'on-air': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
+                           (gobject.TYPE_BOOLEAN,))
     }
     
     __gproperties__ = {
@@ -193,6 +195,8 @@ class IDJCMonitor(gobject.GObject):
                                                     self._voip_mode_handler)
             self.__main.connect_to_signal("tracks_finishing",
                                                 self._tracks_finishing_handler)
+            self.__main.connect_to_signal("on_air",
+                                                self._on_air_handler)
             self.__output.connect_to_signal("streamstate_changed",
                                                     self._streamstate_handler)
             self.__output.connect_to_signal("recordstate_changed",
@@ -315,6 +319,9 @@ class IDJCMonitor(gobject.GObject):
 
     def _effect_stopped_handler(self, player):
         self.emit("effect-stopped", player)
+
+    def _on_air_handler(self, active):
+        self.emit("on-air", active)
 
     def do_get_property(self, prop):
         if self.__shutdown:
